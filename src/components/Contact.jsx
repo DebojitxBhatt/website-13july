@@ -10,12 +10,72 @@ const Contact = () => {
     message: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [showPopup, setShowPopup] = useState(false);
+  const [emailWarning, setEmailWarning] = useState("");
 
-  const handleSubmit = (e) => {
+  const validateEmail = (email) => {
+    // Simple email regex
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    setIsSubmitted(true);
-    setTimeout(() => setIsSubmitted(false), 3000);
+    if (!validateEmail(formData.email)) {
+      setEmailWarning("Please enter a valid email address.");
+      return;
+    } else {
+      setEmailWarning("");
+    }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      // Send to Web3Forms (for email)
+const res = await fetch("https://api.web3forms.com/submit", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    access_key: "1fee6f87-0bd5-43bb-8873-a997d4b60f55",
+    name: formData.name,
+    email: formData.email,
+    project: formData.project,
+    budget: formData.budget,
+    message: formData.message,
+    subject: "New Contact Form Submission from Feelize.com"
+  }),
+});
+
+// 🔁 Send to Make Webhook (for Google Sheets)
+await fetch("https://hook.us2.make.com/wf4gjes9bmt9pswswt59gk8ehygumob4", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name: formData.name,
+    email: formData.email,
+    project: formData.project,
+    budget: formData.budget,
+    message: formData.message,
+    timestamp: new Date().toISOString(),
+  }),
+});
+
+      if (res.ok) {
+        setIsSubmitted(true);
+        setFormData({ name: '', email: '', project: '', budget: '', message: '' });
+        setShowPopup(true);
+        setTimeout(() => setIsSubmitted(false), 3000);
+      } else {
+        setError("Something went wrong. Please try again later.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again later.");
+    }
+    setIsSubmitting(false);
   };
 
   const handleChange = (e) => {
@@ -23,10 +83,35 @@ const Contact = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (e.target.name === "email") {
+      if (e.target.value && !validateEmail(e.target.value)) {
+        setEmailWarning("Please enter a valid email address.");
+      } else {
+        setEmailWarning("");
+      }
+    }
   };
 
   return (
     <section id="contact" className="py-20 bg-white">
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full text-center relative">
+            <button
+              className="absolute top-3 right-4 text-gray-400 hover:text-red-500 text-2xl font-bold"
+              onClick={() => setShowPopup(false)}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+            <div className="mb-4">
+              <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Feelize</span>
+            </div>
+            <div className="text-lg text-gray-800 font-semibold mb-2">Thank you for reaching out!</div>
+            <div className="text-gray-600">Feelize will get back to you shortly.</div>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -55,7 +140,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">Email</h4>
-                  <p className="text-gray-600">Test@Feelize.com</p>
+                  <p className="text-gray-600">info@feelize.com</p>
                 </div>
               </div>
 
@@ -65,7 +150,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">Phone</h4>
-                  <p className="text-gray-600">+1 (999) 99999 99</p>
+                  <p className="text-gray-600">+91 7383034778</p>
                 </div>
               </div>
 
@@ -75,7 +160,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">Location</h4>
-                  <p className="text-gray-600">New York City, USA</p>
+                  <p className="text-gray-600">NYC, USA</p>
                 </div>
               </div>
             </div>
@@ -123,6 +208,9 @@ const Contact = () => {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors"
                     placeholder="your@email.com"
                   />
+                  {emailWarning && (
+                    <div className="text-red-600 text-xs mt-1">{emailWarning}</div>
+                  )}
                 </div>
               </div>
 
@@ -185,13 +273,18 @@ const Contact = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitted}
+                disabled={isSubmitted || isSubmitting}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2 font-semibold disabled:opacity-50"
               >
                 {isSubmitted ? (
                   <>
                     <CheckCircle className="w-5 h-5" />
                     <span>Message Sent!</span>
+                  </>
+                ) : isSubmitting ? (
+                  <>
+                    <Send className="w-5 h-5 animate-spin" />
+                    <span>Sending...</span>
                   </>
                 ) : (
                   <>
@@ -200,6 +293,9 @@ const Contact = () => {
                   </>
                 )}
               </button>
+              {error && (
+                <div className="text-red-600 text-center mt-2">{error}</div>
+              )}
             </form>
           </div>
         </div>
