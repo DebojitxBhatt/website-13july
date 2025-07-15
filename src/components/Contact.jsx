@@ -38,7 +38,7 @@ const res = await fetch("https://api.web3forms.com/submit", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    access_key: "1fee6f87-0bd5-43bb-8873-a997d4b60f55",
+    access_key: import.meta.env.VITE_WEB3FORMS_KEY,
     name: formData.name,
     email: formData.email,
     project: formData.project,
@@ -49,7 +49,7 @@ const res = await fetch("https://api.web3forms.com/submit", {
 });
 
 // 🔁 Send to Make Webhook (for Google Sheets)
-await fetch("https://hook.us2.make.com/wf4gjes9bmt9pswswt59gk8ehygumob4", {
+await fetch(import.meta.env.VITE_MAKE_WEBHOOK_URL, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
