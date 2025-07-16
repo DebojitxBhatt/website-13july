@@ -1,5 +1,8 @@
 import React from 'react';
 import { MessageCircle, Lightbulb, Code, Rocket, CheckCircle } from 'lucide-react';
+import { getCalApi } from "@calcom/embed-react";
+import { useEffect, useRef } from "react";
+import { MeetingButton } from "./Meeting";
 
 const Process = () => {
   const steps = [
@@ -92,11 +95,8 @@ const Process = () => {
             <p className="text-gray-600 mb-6">
               Let's discuss your ideas and see how we can bring them to life with our proven development process.
             </p>
-            <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-full hover:shadow-xl transition-all duration-300 text-lg font-semibold"
-              onClick={() => window.open('https://calendly.com/debojitbhattacharya-official/30min', '_blank')}
-            >
-              Schedule a Discovery Call
-            </button>
+            {/* Meeting button only */}
+            <MeetingButton />
           </div>
         </div>
       </div>
