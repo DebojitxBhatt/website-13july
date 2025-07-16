@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
 
 const Contact = () => {
@@ -14,6 +14,21 @@ const Contact = () => {
   const [error, setError] = useState(null);
   const [showPopup, setShowPopup] = useState(false);
   const [emailWarning, setEmailWarning] = useState("");
+  const [referral, setReferral] = useState(localStorage.getItem('referral') || '');
+
+  // Store referral code from URL in localStorage and state
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get('source');
+    if (source) {
+      localStorage.setItem('referral', source);
+      setReferral(source);
+      // Remove 'source' from the URL without reloading the page
+      params.delete('source');
+      const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
 
   const validateEmail = (email) => {
     // Simple email regex
@@ -31,6 +46,7 @@ const Contact = () => {
     setIsSubmitting(true);
     setError(null);
     try {
+      // Get referral from state (not localStorage)
       // Send to Web3Forms (for email)
 const res = await fetch("https://api.web3forms.com/submit", {
   method: "POST",
@@ -44,11 +60,12 @@ const res = await fetch("https://api.web3forms.com/submit", {
     project: formData.project,
     budget: formData.budget,
     message: formData.message,
-    subject: "New Contact Form Submission from Feelize.com"
+    subject: "New Contact Form Submission from Feelize.com",
+    referral, // Use state
   }),
 });
 
-// 🔁 Send to Make Webhook (for Google Sheets)
+//  Send to Make Webhook (for Google Sheets)
 await fetch(import.meta.env.VITE_MAKE_WEBHOOK_URL, {
   method: "POST",
   headers: {
@@ -61,6 +78,7 @@ await fetch(import.meta.env.VITE_MAKE_WEBHOOK_URL, {
     budget: formData.budget,
     message: formData.message,
     timestamp: new Date().toISOString(),
+    referral, // Use state
   }),
 });
 
